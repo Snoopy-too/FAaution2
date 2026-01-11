@@ -55,15 +55,31 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     INDEX idx_token (token)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Archives table
+CREATE TABLE IF NOT EXISTS archives (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    player_count INT DEFAULT 0,
+    bid_count INT DEFAULT 0,
+    created_by INT,
+    FOREIGN KEY (created_by) REFERENCES members(id) ON DELETE SET NULL,
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Players table
 CREATE TABLE IF NOT EXISTS players (
     id INT PRIMARY KEY AUTO_INCREMENT,
+    archive_id INT DEFAULT NULL,
     player_number INT UNIQUE NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     nickname VARCHAR(100) DEFAULT NULL,
     position TINYINT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (archive_id) REFERENCES archives(id) ON DELETE CASCADE,
+    INDEX idx_archive_id (archive_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Bids table
@@ -84,6 +100,14 @@ CREATE TABLE IF NOT EXISTS bids (
     INDEX idx_team_bids (team_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Migrations table (to track executed migrations)
+CREATE TABLE IF NOT EXISTS migrations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    migration VARCHAR(255) NOT NULL UNIQUE,
+    batch INT NOT NULL,
+    run_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Insert default settings
 INSERT INTO settings (setting_key, setting_value) VALUES
 ('min_bid_increment_percent', '5'),
@@ -102,8 +126,17 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('smtp_from_email', ''),
 ('smtp_from_name', ''),
 ('registration_rate_limit_count', '5'),
-('registration_rate_limit_minutes', '60');
+('registration_rate_limit_minutes', '60')
+ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- Insert default admin for testing (password: admin123)
+-- This is optional and often removed in production wizards if the user creates their own admin
 INSERT INTO members (email, password, name, is_admin, is_active) VALUES
-('admin@test.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 1, 1);
+('admin@test.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 1, 1)
+ON DUPLICATE KEY UPDATE email = email;
+
+-- Pre-fill migrations table to effectively "skip" the migrations that are already part of this schema
+INSERT INTO migrations (migration, batch) VALUES
+('001_email_verification.sql', 1),
+('002_add_archive_support.sql', 1)
+ON DUPLICATE KEY UPDATE migration = migration;
