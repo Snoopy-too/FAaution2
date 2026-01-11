@@ -1,0 +1,175 @@
+<?php
+// admin/process_update.php
+
+require_once __DIR__ . '/../includes/auth.php';
+requireAdmin();
+
+header('Content-Type: application/json');
+
+$response = ['success' => false, 'message' => ''];
+
+try {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        throw new Exception('Invalid request method');
+    }
+
+    $step = $_POST['step'] ?? '';
+
+    switch ($step) {
+        case 'backup':
+            $backupDir = __DIR__ . '/../backups/';
+            if (!is_dir($backupDir)) mkdir($backupDir, 0755, true);
+            
+            $filename = 'backup_' . date('Y-m-d_H-i-s') . '.zip';
+            $zipPath = $backupDir . $filename;
+            
+            $zip = new ZipArchive();
+            if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+                throw new Exception('Cannot create backup zip');
+            }
+            
+            // Add files recursively
+            $rootPath = realpath(__DIR__ . '/../');
+            
+            $files = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($rootPath),
+                RecursiveIteratorIterator::LEAVES_ONLY
+            );
+
+            foreach ($files as $name => $file) {
+                if (!$file->isDir()) {
+                    $filePath = $file->getRealPath();
+                    $relativePath = substr($filePath, strlen($rootPath) + 1);
+                    
+                    // Basic exclusions
+                    if (strpos($relativePath, 'backups') === 0) continue;
+                    if (strpos($relativePath, '.git') === 0) continue;
+                    if (strpos($relativePath, 'node_modules') === 0) continue;
+                    if (strpos($relativePath, '.vscode') === 0) continue;
+                    
+                    $zip->addFile($filePath, $relativePath);
+                }
+            }
+            
+            $zip->close();
+            
+            $response['success'] = true;
+            $response['message'] = 'Backup created: ' . $filename;
+            break;
+
+        case 'download':
+            $url = $_POST['url'] ?? '';
+            // For testing/simulation if no URL is provided, we might want to skip or error
+            // But typical flow has URL from update info
+            if (!$url) {
+                // Return success for dry-run if no URL, or error?
+                // Let's assume error for production safety
+                 throw new Exception('No download URL provided');
+            }
+            
+            $tempDir = __DIR__ . '/../temp_update/';
+            if (!is_dir($tempDir)) mkdir($tempDir, 0755, true);
+            
+            $zipFile = $tempDir . 'update.zip';
+            
+            // Stream download
+            $fp = fopen($zipFile, 'w+');
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 300); // 5 min timeout for large files
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'FA-Auction-Updater');
+            curl_exec($ch);
+            
+            if (curl_errno($ch)) {
+                throw new Exception(curl_error($ch));
+            }
+            
+            curl_close($ch);
+            fclose($fp);
+            
+            $response['success'] = true;
+            $response['message'] = 'Update downloaded successfully';
+            break;
+
+        case 'install':
+            $tempDir = __DIR__ . '/../temp_update/';
+            $zipFile = $tempDir . 'update.zip';
+            
+            if (!file_exists($zipFile)) throw new Exception('Update file not found');
+            
+            $zip = new ZipArchive();
+            if ($zip->open($zipFile) === TRUE) {
+                $extractPath = $tempDir . 'extracted/';
+                if (!is_dir($extractPath)) mkdir($extractPath, 0755, true);
+
+                $zip->extractTo($extractPath);
+                $zip->close();
+                
+                // Find root folder in zip
+                $subDirs = glob($extractPath . '*', GLOB_ONLYDIR);
+                $sourceDir = (count($subDirs) === 1) ? $subDirs[0] : $extractPath;
+                
+                // Copy files
+                $destDir = realpath(__DIR__ . '/../');
+                
+                $iterator = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS),
+                    RecursiveIteratorIterator::SELF_FIRST
+                );
+                
+                foreach ($iterator as $item) {
+                    $subPath = $iterator->getSubPathName();
+                    $destPath = $destDir . DIRECTORY_SEPARATOR . $subPath;
+                    
+                    // Critical Exclusions (replicate .updateignore logic simpler here)
+                    if ($subPath === 'config/database.php' && file_exists($destPath)) continue;
+                    if ($subPath === 'version.txt') continue; // We update this manually at end ideally, or let it overwrite? Usually overwrite.
+                    // Actually, we want new version.txt
+                    
+                    if (strpos($subPath, 'install') === 0) continue;
+                    if (strpos($subPath, 'backups') === 0) continue;
+                    if (strpos($subPath, 'images/uploads') === 0) continue;
+                    if (strpos($subPath, 'team_logos') === 0) continue;
+                    if (strpos($subPath, 'person_pictures') === 0) continue;
+                    
+                    if ($item->isDir()) {
+                        if (!is_dir($destPath)) mkdir($destPath, 0755, true);
+                    } else {
+                        copy($item, $destPath);
+                    }
+                }
+                
+                // Cleanup temp
+                // recursiveDelete($tempDir); // TODO: Implement recursive delete helper
+                
+                $response['success'] = true;
+                $response['message'] = 'Files installed successfully';
+            } else {
+                throw new Exception('Failed to open update zip');
+            }
+            break;
+            
+        case 'migrate':
+            require_once __DIR__ . '/../includes/MigrationRunner.php';
+            $pdo = getDBConnection();
+            $runner = new MigrationRunner($pdo);
+            $result = $runner->run();
+            
+            if (!$result['success']) {
+                throw new Exception($result['error']);
+            }
+            
+            $response['success'] = true;
+            $response['message'] = "Database updated ({$result['count']} migrations run)";
+            break;
+
+        default:
+            throw new Exception('Invalid update step');
+    }
+
+} catch (Exception $e) {
+    $response['message'] = $e->getMessage();
+}
+
+echo json_encode($response);

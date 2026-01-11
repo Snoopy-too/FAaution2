@@ -1,0 +1,11 @@
+<?php
+// .updateignore
+// Files and directories to preserve during update
+config/database.php
+install/
+backups/
+images/uploads/
+team_logos/
+person_pictures/
+.htaccess
+version.txt

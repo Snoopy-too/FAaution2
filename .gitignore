@@ -1,0 +1,30 @@
+# System
+config/database.php
+config/installed.php
+.env
+
+# Content & Storage
+backups/
+cache/
+temp_update/
+logs/
+uploads/
+images/uploads/
+
+# User Generated Images (preserve directory, ignore content)
+# Assuming team_logos and person_pictures contain user data
+team_logos/*
+!team_logos/.gitkeep
+person_pictures/*
+!person_pictures/.gitkeep
+
+# IDEs & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+.claude/
+
+# Windows special files
+nul

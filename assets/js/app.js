@@ -1,0 +1,216 @@
+/**
+ * FA Auction - Client-side JavaScript
+ */
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ========================================
+    // Mobile Menu Toggle
+    // ========================================
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function openMenu() {
+        sidebar.classList.add('open');
+        sidebarOverlay.classList.add('active');
+        menuToggle.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenu() {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('active');
+        menuToggle.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function toggleMenu() {
+        if (sidebar.classList.contains('open')) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    }
+
+    if (menuToggle) {
+        menuToggle.addEventListener('click', toggleMenu);
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeMenu);
+    }
+
+    // Close menu when clicking a nav link (mobile)
+    const navLinks = document.querySelectorAll('.sidebar-nav a');
+    navLinks.forEach(function (link) {
+        link.addEventListener('click', function () {
+            if (window.innerWidth <= 768) {
+                closeMenu();
+            }
+        });
+    });
+
+    // Close menu on escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sidebar && sidebar.classList.contains('open')) {
+            closeMenu();
+        }
+    });
+
+    // Close menu on window resize if going to desktop
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 768 && sidebar && sidebar.classList.contains('open')) {
+            closeMenu();
+        }
+    });
+
+    // ========================================
+    // Auto-hide flash messages after 5 seconds
+    // ========================================
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(function (alert) {
+        setTimeout(function () {
+            alert.style.transition = 'opacity 0.5s';
+            alert.style.opacity = '0';
+            setTimeout(function () {
+                alert.remove();
+            }, 500);
+        }, 5000);
+    });
+
+    // ========================================
+    // Confirm dialogs for delete actions
+    // ========================================
+    const deleteForms = document.querySelectorAll('form[data-confirm]');
+    deleteForms.forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            if (!confirm(form.dataset.confirm)) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // ========================================
+    // Format money inputs
+    // ========================================
+    const moneyInputs = document.querySelectorAll('input[type="number"][step="1000000"], input[type="number"][step="100000"]');
+    moneyInputs.forEach(function (input) {
+        input.addEventListener('blur', function () {
+            const step = parseFloat(input.step) || 100000;
+            const value = parseFloat(input.value) || 0;
+            input.value = Math.round(value / step) * step;
+        });
+    });
+
+    // ========================================
+    // Smooth scroll for anchor links
+    // ========================================
+    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+        anchor.addEventListener('click', function (e) {
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // ========================================
+    // Table horizontal scroll indicator
+    // ========================================
+    const tableContainers = document.querySelectorAll('.table-container');
+    tableContainers.forEach(function (container) {
+        const table = container.querySelector('table');
+        if (table && table.scrollWidth > container.clientWidth) {
+            container.classList.add('scrollable');
+        }
+    });
+
+    // ========================================
+    // Touch-friendly number inputs
+    // ========================================
+    const numberInputs = document.querySelectorAll('input[type="number"]');
+    numberInputs.forEach(function (input) {
+        // Prevent scroll from changing value
+        input.addEventListener('wheel', function (e) {
+            if (document.activeElement === this) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    });
+
+    // ========================================
+    // Auction Countdown Clock
+    // ========================================
+    const countdownElements = document.querySelectorAll('.countdown-clock');
+    if (countdownElements.length > 0) {
+        // Find the most prominent countdown to get server time reference
+        const refEl = countdownElements[0];
+        const serverStart = parseInt(refEl.dataset.now);
+        const browserStart = Math.floor(Date.now() / 1000);
+        const timeOffset = serverStart - browserStart;
+
+        function updateCountdowns() {
+            const browserNow = Math.floor(Date.now() / 1000);
+            const serverNow = browserNow + timeOffset;
+
+            countdownElements.forEach(function (el) {
+                const deadline = parseInt(el.dataset.deadline);
+                const timerDisplay = el.querySelector('.countdown-timer');
+
+                if (isNaN(deadline) || !timerDisplay) return;
+
+                const timeLeft = deadline - serverNow;
+
+                if (timeLeft <= 0) {
+                    timerDisplay.textContent = "Auction Closed";
+                    timerDisplay.style.color = "var(--danger)";
+                    return;
+                }
+
+                const days = Math.floor(timeLeft / 86400);
+                const hours = Math.floor((timeLeft % 86400) / 3600);
+                const minutes = Math.floor((timeLeft % 3600) / 60);
+                const seconds = timeLeft % 60;
+
+                let display = "";
+                if (days > 0) display += days + "d ";
+                display += hours.toString().padStart(2, '0') + "h ";
+                display += minutes.toString().padStart(2, '0') + "m ";
+                display += seconds.toString().padStart(2, '0') + "s";
+
+                timerDisplay.textContent = display;
+            });
+        }
+
+        updateCountdowns();
+        setInterval(updateCountdowns, 1000);
+    }
+
+});
+
+// ========================================
+// Utility Functions
+// ========================================
+
+// Format currency
+function formatMoney(amount) {
+    return '$' + parseInt(amount).toLocaleString();
+}
+
+// Debounce function for performance
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
