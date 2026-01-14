@@ -115,13 +115,16 @@ function importPlayersFromCSV($filePath, $pdo, $clearExisting = false) {
     }
 
     $stmt = $pdo->prepare("
-        INSERT INTO players (player_number, first_name, last_name, nickname, position)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO players (player_number, first_name, last_name, nickname, position, day_of_birth, month_of_birth, year_of_birth)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             first_name = VALUES(first_name),
             last_name = VALUES(last_name),
             nickname = VALUES(nickname),
-            position = VALUES(position)
+            position = VALUES(position),
+            day_of_birth = VALUES(day_of_birth),
+            month_of_birth = VALUES(month_of_birth),
+            year_of_birth = VALUES(year_of_birth)
     ");
 
     $lineNumber = 0;
@@ -143,12 +146,18 @@ function importPlayersFromCSV($filePath, $pdo, $clearExisting = false) {
         // Column 5: LastName
         // Column 6: FirstName
         // Column 7: NickName
+        // Column 9: DayOB
+        // Column 10: MonthOB
+        // Column 11: YearOB
         // Column 21: Position
 
         $playerNumber = trim($row[0]);
         $lastName = trim($row[5] ?? '');
         $firstName = trim($row[6] ?? '');
         $nickname = trim($row[7] ?? '');
+        $dayOB = !empty($row[9]) && is_numeric($row[9]) ? (int)$row[9] : null;
+        $monthOB = !empty($row[10]) && is_numeric($row[10]) ? (int)$row[10] : null;
+        $yearOB = !empty($row[11]) && is_numeric($row[11]) ? (int)$row[11] : null;
         $position = (int)($row[21] ?? 0);
 
         // Validate required fields
@@ -174,7 +183,10 @@ function importPlayersFromCSV($filePath, $pdo, $clearExisting = false) {
                 $firstName,
                 $lastName,
                 $nickname ?: null,
-                $position
+                $position,
+                $dayOB,
+                $monthOB,
+                $yearOB
             ]);
             $result['imported']++;
         } catch (PDOException $e) {

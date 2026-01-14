@@ -49,6 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'player_html_path' => trim($_POST['player_html_path'] ?? 'player_pages/'),
                 'team_logos_path' => trim($_POST['team_logos_path'] ?? 'team_logos/'),
                 'app_name' => trim($_POST['app_name'] ?? 'FA Auction'),
+                // In-game date for simulation leagues
+                'in_game_date' => !empty($_POST['in_game_date']) ? $_POST['in_game_date'] : null,
                 // SMTP Settings
                 'smtp_host' => trim($_POST['smtp_host'] ?? ''),
                 'smtp_port' => (int)($_POST['smtp_port'] ?? 587),
@@ -164,6 +166,21 @@ include __DIR__ . '/../includes/header.php';
             </div>
             <div class="form-group">
                 <small class="text-muted">Relative paths (e.g., player_pages/) are from app root. Absolute paths start with / or http://</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulation League Settings -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3>Simulation League Settings</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="in_game_date">Current In-Game Date</label>
+                <input type="date" id="in_game_date" name="in_game_date" class="form-control" style="max-width: 250px;"
+                       value="<?php echo h($settings['in_game_date'] ?? ''); ?>">
+                <small class="text-muted">Set the current date in your simulation league. This is used to calculate player ages. For example, if your league is set in 1920, enter a date like 1920-01-15.</small>
             </div>
         </div>
     </div>

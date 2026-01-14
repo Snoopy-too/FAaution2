@@ -198,6 +198,17 @@ include __DIR__ . '/../includes/header.php';
         <?php if ($player['nickname']): ?>
             <p class="nickname">"<?php echo h($player['nickname']); ?>"</p>
         <?php endif; ?>
+        <?php
+        $playerAge = calculatePlayerAge(
+            $player['day_of_birth'] ?? null,
+            $player['month_of_birth'] ?? null,
+            $player['year_of_birth'] ?? null
+        );
+        if ($playerAge !== null): ?>
+            <p class="player-age" style="font-size: 18px; color: var(--gray-600); margin: 4px 0;">
+                Age: <strong><?php echo $playerAge; ?></strong>
+            </p>
+        <?php endif; ?>
         <p class="position">
             <span class="badge badge-secondary" style="font-size: 16px;">
                 <?php echo getPositionAbbr($player['position']); ?>
@@ -205,7 +216,7 @@ include __DIR__ . '/../includes/header.php';
             <?php echo h(getPositionName($player['position'])); ?>
         </p>
         <div class="mt-3">
-            <a href="<?php echo getPlayerHtmlUrl($player['player_number']); ?>" 
+            <a href="<?php echo getPlayerHtmlUrl($player['player_number']); ?>"
                target="_blank" class="btn btn-outline btn-sm">
                View OOTP Player Page &rarr;
             </a>

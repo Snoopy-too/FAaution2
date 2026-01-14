@@ -811,11 +811,43 @@ function isUpdateDismissed($version) {
 function dismissUpdate($version) {
     $pdo = getDBConnection();
     if (!$pdo) return;
-    
+
     $stmt = $pdo->prepare("
-        INSERT INTO settings (`key`, value) 
+        INSERT INTO settings (`key`, value)
         VALUES ('dismissed_update_version', ?)
         ON DUPLICATE KEY UPDATE value = ?
     ");
     $stmt->execute([$version, $version]);
+}
+
+/**
+ * Calculate player age based on birth date and in-game date
+ *
+ * @param int|null $dayOB Day of birth
+ * @param int|null $monthOB Month of birth
+ * @param int|null $yearOB Year of birth
+ * @return int|null Age in years, or null if birth date or in-game date not set
+ */
+function calculatePlayerAge($dayOB, $monthOB, $yearOB) {
+    // Check if we have valid birth date
+    if (!$yearOB || !$monthOB || !$dayOB) {
+        return null;
+    }
+
+    // Get in-game date from settings
+    $inGameDate = getSetting('in_game_date');
+    if (!$inGameDate) {
+        return null;
+    }
+
+    try {
+        $birthDate = new DateTime("{$yearOB}-{$monthOB}-{$dayOB}");
+        $currentDate = new DateTime($inGameDate);
+
+        $age = $currentDate->diff($birthDate)->y;
+
+        return $age;
+    } catch (Exception $e) {
+        return null;
+    }
 }

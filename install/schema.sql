@@ -77,6 +77,9 @@ CREATE TABLE IF NOT EXISTS players (
     last_name VARCHAR(100) NOT NULL,
     nickname VARCHAR(100) DEFAULT NULL,
     position TINYINT NOT NULL,
+    day_of_birth TINYINT UNSIGNED DEFAULT NULL,
+    month_of_birth TINYINT UNSIGNED DEFAULT NULL,
+    year_of_birth SMALLINT UNSIGNED DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (archive_id) REFERENCES archives(id) ON DELETE CASCADE,
     INDEX idx_archive_id (archive_id)
@@ -126,7 +129,8 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('smtp_from_email', ''),
 ('smtp_from_name', ''),
 ('registration_rate_limit_count', '5'),
-('registration_rate_limit_minutes', '60')
+('registration_rate_limit_minutes', '60'),
+('in_game_date', NULL)
 ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- Insert default admin for testing (password: admin123)
@@ -138,5 +142,6 @@ ON DUPLICATE KEY UPDATE email = email;
 -- Pre-fill migrations table to effectively "skip" the migrations that are already part of this schema
 INSERT INTO migrations (migration, batch) VALUES
 ('001_email_verification.sql', 1),
-('002_add_archive_support.sql', 1)
+('002_add_archive_support.sql', 1),
+('003_add_player_birthdate.sql', 1)
 ON DUPLICATE KEY UPDATE migration = migration;
