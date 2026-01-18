@@ -130,19 +130,26 @@ try {
                     
                     // Critical Exclusions (replicate .updateignore logic simpler here)
                     if ($subPath === 'config/database.php' && file_exists($destPath)) continue;
-                    if ($subPath === 'version.txt') continue; // We update this manually at end ideally, or let it overwrite? Usually overwrite.
-                    // Actually, we want new version.txt
+                    // Note: We DO want to overwrite version.txt
                     
                     if (strpos($subPath, 'install') === 0) continue;
                     if (strpos($subPath, 'backups') === 0) continue;
                     if (strpos($subPath, 'images/uploads') === 0) continue;
+                    if (strpos($subPath, 'assets/uploads') === 0) continue; // Also exclude assets/uploads if it exists
                     if (strpos($subPath, 'team_logos') === 0) continue;
                     if (strpos($subPath, 'person_pictures') === 0) continue;
+                    if (strpos($subPath, '.git') === 0) continue;
                     
                     if ($item->isDir()) {
-                        if (!is_dir($destPath)) mkdir($destPath, 0755, true);
+                        if (!is_dir($destPath)) {
+                             if (!@mkdir($destPath, 0755, true)) {
+                                 throw new Exception("Permission denied: Cannot create directory $subPath");
+                             }
+                        }
                     } else {
-                        copy($item, $destPath);
+                        if (!@copy($item, $destPath)) {
+                             throw new Exception("Permission denied: Cannot overwrite file $subPath. Check server permissions.");
+                        }
                     }
                 }
                 
