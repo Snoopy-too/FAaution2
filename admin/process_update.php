@@ -8,6 +8,22 @@ header('Content-Type: application/json');
 
 $response = ['success' => false, 'message' => ''];
 
+/**
+ * Recursively delete a directory and its contents
+ * @param string $dir Directory path to delete
+ * @return bool Success status
+ */
+function recursiveDelete($dir) {
+    if (!is_dir($dir)) return true;
+    
+    $files = array_diff(scandir($dir), ['.', '..']);
+    foreach ($files as $file) {
+        $path = $dir . DIRECTORY_SEPARATOR . $file;
+        is_dir($path) ? recursiveDelete($path) : @unlink($path);
+    }
+    return @rmdir($dir);
+}
+
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Invalid request method');
@@ -44,11 +60,13 @@ try {
                     $filePath = $file->getRealPath();
                     $relativePath = substr($filePath, strlen($rootPath) + 1);
                     
-                    // Basic exclusions
+                    // Basic exclusions (per UPDATE_SYSTEM_PRD.md Section 4.2)
                     if (strpos($relativePath, 'backups') === 0) continue;
                     if (strpos($relativePath, '.git') === 0) continue;
                     if (strpos($relativePath, 'node_modules') === 0) continue;
+                    if (strpos($relativePath, 'temp_update') === 0) continue;
                     if (strpos($relativePath, '.vscode') === 0) continue;
+                    if (strcasecmp(basename($relativePath), 'create_dist.php') === 0) continue;
                     
                     $zip->addFile($filePath, $relativePath);
                 }
@@ -163,8 +181,8 @@ try {
                     }
                 }
                 
-                // Cleanup temp
-                // recursiveDelete($tempDir); // TODO: Implement recursive delete helper
+                // Cleanup temp directory
+                recursiveDelete($tempDir);
                 
                 $response['success'] = true;
                 $response['message'] = 'Files installed successfully';
