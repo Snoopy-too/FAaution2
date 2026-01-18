@@ -173,6 +173,15 @@ try {
                 throw new Exception($result['error']);
             }
             
+            // Clear the update cache so the dashboard stops showing "Update Available"
+            if (function_exists('clearUpdateCache')) {
+                clearUpdateCache();
+            } else {
+                // Fallback if not loaded, though auth.php usually loads it
+                $cacheFile = __DIR__ . '/../cache/update_check.json';
+                if (file_exists($cacheFile)) @unlink($cacheFile);
+            }
+            
             $response['success'] = true;
             $response['message'] = "Database updated ({$result['count']} migrations run)";
             break;
