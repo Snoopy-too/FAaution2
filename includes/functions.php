@@ -729,7 +729,7 @@ function checkForUpdates() {
     }
     
     $currentVersion = getCurrentVersion();
-    $url = 'https://api.github.com/repos/Snoopy-too/FAaution2/releases/latest';
+    $url = 'https://api.github.com/repos/Snoopy-too/FAAuction2/releases/latest';
     
     $context = stream_context_create([
         'http' => [
