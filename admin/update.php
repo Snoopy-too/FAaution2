@@ -9,6 +9,12 @@ requireAdmin();
 
 define('PAGE_TITLE', 'Update FA Auction');
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'force_check') {
+    clearUpdateCache();
+    header('Location: update.php');
+    exit;
+}
+
 $pdo = getDBConnection();
 $updateInfo = checkForUpdates();
 
