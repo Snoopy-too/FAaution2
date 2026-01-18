@@ -5,10 +5,17 @@
  * Handles all email sending functionality using PHPMailer.
  */
 
-require_once __DIR__ . '/../vendor/phpmailer/src/Exception.php';
-require_once __DIR__ . '/../vendor/phpmailer/src/PHPMailer.php';
-require_once __DIR__ . '/../vendor/phpmailer/src/SMTP.php';
 require_once __DIR__ . '/functions.php';
+
+// Check if PHPMailer exists before loading
+$phpmailerPath = __DIR__ . '/../vendor/phpmailer/PHPMailer.php';
+define('PHPMAILER_AVAILABLE', file_exists($phpmailerPath));
+
+if (PHPMAILER_AVAILABLE) {
+    require_once __DIR__ . '/../vendor/phpmailer/Exception.php';
+    require_once __DIR__ . '/../vendor/phpmailer/PHPMailer.php';
+    require_once __DIR__ . '/../vendor/phpmailer/SMTP.php';
+}
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -19,6 +26,11 @@ use PHPMailer\PHPMailer\Exception;
  * @return PHPMailer|null
  */
 function getMailer() {
+    if (!PHPMAILER_AVAILABLE) {
+        error_log('PHPMailer not available - vendor/phpmailer files missing');
+        return null;
+    }
+
     $mail = new PHPMailer(true);
 
     try {
