@@ -59,7 +59,7 @@ function getMailer() {
         }
 
         $fromEmail = getSetting('smtp_from_email', '');
-        $fromName = getSetting('smtp_from_name', getSetting('app_name', 'FA Auction'));
+        $fromName = getSetting('smtp_from_name', 'FA Auction');
 
         if (!empty($fromEmail)) {
             $mail->setFrom($fromEmail, $fromName);
@@ -118,7 +118,7 @@ function sendEmail($to, $subject, $htmlBody, $textBody = '') {
  * @return string Complete HTML email
  */
 function getEmailTemplate($content) {
-    $appName = getSetting('app_name', 'FA Auction');
+    $appName = 'FA Auction';
 
     return '<!DOCTYPE html>
 <html>
@@ -166,7 +166,7 @@ function getEmailTemplate($content) {
  * @return bool Success status
  */
 function sendVerificationEmail($email, $name, $token) {
-    $appName = getSetting('app_name', 'FA Auction');
+    $appName = 'FA Auction';
     $baseUrl = getBaseUrl();
     $verifyUrl = $baseUrl . '/auth/verify-email.php?token=' . urlencode($token);
 
@@ -194,7 +194,7 @@ function sendVerificationEmail($email, $name, $token) {
  * @return bool Success status
  */
 function sendWelcomeEmail($email, $name, $teamName = '') {
-    $appName = getSetting('app_name', 'FA Auction');
+    $appName = 'FA Auction';
     $baseUrl = getBaseUrl();
 
     $teamInfo = !empty($teamName) ? '<p>You have been assigned to team: <strong>' . htmlspecialchars($teamName) . '</strong></p>' : '';
@@ -228,7 +228,7 @@ function sendWelcomeEmail($email, $name, $teamName = '') {
  * @return bool Success status
  */
 function sendPasswordResetEmail($email, $name, $token) {
-    $appName = getSetting('app_name', 'FA Auction');
+    $appName = 'FA Auction';
     $baseUrl = getBaseUrl();
     $resetUrl = $baseUrl . '/auth/reset-password.php?token=' . urlencode($token);
 
@@ -257,7 +257,7 @@ function sendPasswordResetEmail($email, $name, $token) {
  * @return int Number of admins notified
  */
 function notifyAdminsOfNewUser($memberName, $memberEmail, $teamName = '') {
-    $appName = getSetting('app_name', 'FA Auction');
+    $appName = 'FA Auction';
     $admins = getActiveAdminEmails();
     $notified = 0;
 
@@ -293,7 +293,7 @@ function notifyAdminsOfNewUser($memberName, $memberEmail, $teamName = '') {
  * @return array Result with success status and message
  */
 function testEmailConfiguration($testEmail) {
-    $appName = getSetting('app_name', 'FA Auction');
+    $appName = 'FA Auction';
 
     $content = '
         <h2>Email Configuration Test</h2>

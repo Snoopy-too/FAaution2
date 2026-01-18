@@ -19,7 +19,7 @@ if (isLoggedIn()) {
 
 $error = '';
 $success = '';
-$appName = getSetting('app_name', 'FA Auction');
+$appName = 'FA Auction';
 $availableTeams = getAvailableTeams();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

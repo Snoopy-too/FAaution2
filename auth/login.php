@@ -15,7 +15,7 @@ if (isLoggedIn()) {
 }
 
 $error = '';
-$appName = getSetting('app_name', 'FA Auction');
+$appName = 'FA Auction';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify CSRF token

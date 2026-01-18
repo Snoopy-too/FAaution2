@@ -108,16 +108,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            $appName = trim($_POST['app_name'] ?? 'FA Auction');
+            $leagueName = trim($_POST['league_name'] ?? '');
 
             $db = $_SESSION['install_db'];
             try {
                 $pdo = new PDO("mysql:host={$db['host']};dbname={$db['name']};charset=utf8mb4", $db['user'], $db['pass']);
                 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-                // Update app name
-                $stmt = $pdo->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'app_name'");
-                $stmt->execute([$appName]);
+                // Update league name
+                $stmt = $pdo->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'league_name'");
+                $stmt->execute([$leagueName]);
 
                 // Update database config file
                 $configContent = "<?php
@@ -403,8 +403,9 @@ function getDBConnection() {
                 <h3 class="step-title">Step 4: Final Settings</h3>
                 <form method="POST">
                     <div class="form-group">
-                        <label>Application Name</label>
-                        <input type="text" name="app_name" value="FA Auction" required>
+                        <label>League Name</label>
+                        <input type="text" name="league_name" placeholder="e.g., National Baseball League">
+                        <p style="font-size: 12px; color: #6b7280; margin-top: 6px;">Optional. This will appear above "FA Auction" in the sidebar.</p>
                     </div>
                     <button type="submit" class="btn btn-primary">Complete Installation</button>
                 </form>

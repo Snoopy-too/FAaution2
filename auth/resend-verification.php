@@ -8,7 +8,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/email.php';
 
-$appName = getSetting('app_name', 'FA Auction');
+$appName = 'FA Auction';
 $error = '';
 $success = '';
 

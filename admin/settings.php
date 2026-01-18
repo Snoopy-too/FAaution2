@@ -48,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'player_images_path' => trim($_POST['player_images_path'] ?? 'person_pictures/'),
                 'player_html_path' => trim($_POST['player_html_path'] ?? 'player_pages/'),
                 'team_logos_path' => trim($_POST['team_logos_path'] ?? 'team_logos/'),
-                'app_name' => trim($_POST['app_name'] ?? 'FA Auction'),
                 // In-game date for simulation leagues
                 'in_game_date' => !empty($_POST['in_game_date']) ? $_POST['in_game_date'] : null,
                 // SMTP Settings
@@ -140,11 +139,6 @@ include __DIR__ . '/../includes/header.php';
                     }
                 }
                 </script>
-                <div class="form-group">
-                    <label for="app_name">Application Name</label>
-                    <input type="text" id="app_name" name="app_name" class="form-control"
-                           value="<?php echo h($settings['app_name'] ?? 'FA Auction'); ?>">
-                </div>
                 <div class="form-group">
                     <label for="player_images_path">Player Images Path</label>
                     <input type="text" id="player_images_path" name="player_images_path" class="form-control"
@@ -333,7 +327,7 @@ include __DIR__ . '/../includes/header.php';
                     <label for="smtp_from_name">From Name</label>
                     <input type="text" id="smtp_from_name" name="smtp_from_name" class="form-control"
                            value="<?php echo h($settings['smtp_from_name'] ?? ''); ?>"
-                           placeholder="<?php echo h($settings['app_name'] ?? 'FA Auction'); ?>">
+                           placeholder="FA Auction">
                 </div>
             </div>
         </div>

@@ -7,7 +7,7 @@
 
 require_once __DIR__ . '/../includes/auth.php';
 
-$appName = getSetting('app_name', 'FA Auction');
+$appName = 'FA Auction';
 $error = '';
 $success = '';
 

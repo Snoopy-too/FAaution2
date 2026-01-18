@@ -17,7 +17,7 @@ if (isLoggedIn()) {
     }
 }
 
-$appName = getSetting('app_name', 'FA Auction');
+$appName = 'FA Auction';
 $error = '';
 $success = '';
 

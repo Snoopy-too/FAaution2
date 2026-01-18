@@ -9,7 +9,8 @@ if (!defined('PAGE_TITLE')) {
     define('PAGE_TITLE', 'FA Auction');
 }
 
-$appName = getSetting('app_name', 'FA Auction');
+$appName = 'FA Auction';
+$leagueName = getSetting('league_name', '');
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
 // Auction Deadline for Countdown
@@ -31,6 +32,7 @@ $isDeadlineActive = $deadlineType === 'datetime' && $deadlineDatetime;
 <body>
     <!-- Mobile Header -->
     <header class="mobile-header">
+        <?php if ($leagueName): ?><span class="league-name"><?php echo h($leagueName); ?></span><?php endif; ?>
         <h1><?php echo h($appName); ?></h1>
         <?php if ($isDeadlineActive): ?>
             <div class="countdown-clock header-countdown" 
@@ -54,6 +56,7 @@ $isDeadlineActive = $deadlineType === 'datetime' && $deadlineDatetime;
         <!-- Admin Sidebar -->
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
+                <?php if ($leagueName): ?><span class="league-name"><?php echo h($leagueName); ?></span><?php endif; ?>
                 <h1><?php echo h($appName); ?></h1>
                 <p>Admin Panel</p>
                 <?php if ($isDeadlineActive): ?>
@@ -119,6 +122,7 @@ $isDeadlineActive = $deadlineType === 'datetime' && $deadlineDatetime;
         <!-- Member Sidebar -->
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
+                <?php if ($leagueName): ?><span class="league-name"><?php echo h($leagueName); ?></span><?php endif; ?>
                 <h1><?php echo h($appName); ?></h1>
                 <p><?php echo h(getCurrentTeamName()); ?></p>
                 <?php if ($isDeadlineActive): ?>

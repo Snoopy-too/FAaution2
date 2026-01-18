@@ -96,6 +96,16 @@ a:hover {
     margin-top: 4px;
 }
 
+.sidebar-header .league-name,
+.mobile-header .league-name {
+    display: block;
+    font-size: 11px;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
 .countdown-clock {
     margin-top: 15px;
     background: rgba(255, 255, 255, 0.05);
