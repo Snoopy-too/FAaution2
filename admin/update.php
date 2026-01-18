@@ -33,7 +33,18 @@ include __DIR__ . '/../includes/header.php';
     </div>
     <div class="card-body">
         
-        <?php if (!$updateInfo || !$updateInfo['available']): ?>
+        <?php if (isset($updateInfo['error'])): ?>
+            <div class="alert alert-warning">
+                <h4>Connection Error</h4>
+                <p><?php echo h($updateInfo['error']); ?></p>
+            </div>
+            <div class="text-center">
+                 <form method="POST" action="update.php">
+                     <input type="hidden" name="action" value="force_check">
+                     <button type="submit" class="btn btn-primary">Try Again</button>
+                 </form>
+            </div>
+        <?php elseif (!$updateInfo || !$updateInfo['available']): ?>
             <div class="text-center" style="padding: 40px;">
                 <div style="font-size: 48px; margin-bottom: 20px;">✓</div>
                 <h3>You are up to date!</h3>

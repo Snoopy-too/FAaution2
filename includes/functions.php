@@ -731,19 +731,47 @@ function checkForUpdates() {
     $currentVersion = getCurrentVersion();
     $url = 'https://api.github.com/repos/Snoopy-too/FAaution2/releases/latest';
     
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'GET',
-            'header' => 'User-Agent: FA-Auction-App',
-            'timeout' => 5
-        ]
-    ]);
-    
-    $response = @file_get_contents($url, false, $context);
-    if (!$response) return false;
+    // Helper to fetch URL
+    $fetchUrl = function($url) {
+        // Try cURL first as it's more reliable
+        if (function_exists('curl_init')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'FA-Auction-App');
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            $output = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($httpCode == 200 && $output) return $output;
+        }
+
+        // Fallback to file_get_contents
+        if (ini_get('allow_url_fopen')) {
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'GET',
+                    'header' => "User-Agent: FA-Auction-App\r\n",
+                    'timeout' => 5
+                ]
+            ]);
+            $response = @file_get_contents($url, false, $context);
+            if ($response) return $response;
+        }
+
+        return false;
+    };
+
+    $response = $fetchUrl($url);
+    if (!$response) {
+        return ['error' => 'Could not connect to GitHub to check for updates. ' . (function_exists('curl_init') ? 'cURL failed.' : 'cURL not installed.')];
+    }
     
     $release = json_decode($response, true);
-    if (!$release || !isset($release['tag_name'])) return false;
+    if (!$release || !isset($release['tag_name'])) {
+        return ['error' => 'Invalid response from GitHub API.'];
+    }
     
     $latestVersion = ltrim($release['tag_name'], 'v');
     
@@ -768,9 +796,11 @@ function checkForUpdates() {
     
     // No update available - cache this too
     $noUpdate = ['available' => false, 'checked_at' => time()];
+    // Ensure cache directory exists before writing
+    @mkdir(dirname($cacheFile), 0755, true);
     @file_put_contents($cacheFile, json_encode($noUpdate));
     
-    return false;
+    return $noUpdate; // Return the array instead of false so we know it checked successfully
 }
 
 /**
