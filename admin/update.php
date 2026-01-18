@@ -90,7 +90,7 @@ include __DIR__ . '/../includes/header.php';
             </div>
 
             <div id="update-error" style="display: none;">
-                <div class="alert alert-danger">
+                <div class="alert alert-danger" style="margin-bottom: 20px;">
                     <h4 style="margin-top: 0;">Update Failed</h4>
                     <p id="error-message">An unexpected error occurred.</p>
                 </div>

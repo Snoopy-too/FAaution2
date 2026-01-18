@@ -23,6 +23,9 @@ try {
             $filename = 'backup_' . date('Y-m-d_H-i-s') . '.zip';
             $zipPath = $backupDir . $filename;
             
+            if (!class_exists('ZipArchive')) {
+                throw new Exception('PHP Zip extension is not enabled. Please enable it in php.ini.');
+            }
             $zip = new ZipArchive();
             if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
                 throw new Exception('Cannot create backup zip');
@@ -98,6 +101,9 @@ try {
             
             if (!file_exists($zipFile)) throw new Exception('Update file not found');
             
+            if (!class_exists('ZipArchive')) {
+                throw new Exception('PHP Zip extension is not enabled. Please enable it in php.ini.');
+            }
             $zip = new ZipArchive();
             if ($zip->open($zipFile) === TRUE) {
                 $extractPath = $tempDir . 'extracted/';

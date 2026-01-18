@@ -794,13 +794,13 @@ function isUpdateDismissed($version) {
     if (!$pdo) return false;
     
     $stmt = $pdo->prepare("
-        SELECT value FROM settings 
-        WHERE key = 'dismissed_update_version'
+        SELECT setting_value FROM settings 
+        WHERE setting_key = 'dismissed_update_version'
     ");
     $stmt->execute();
     $result = $stmt->fetch();
     
-    return $result && $result['value'] === $version;
+    return $result && $result['setting_value'] === $version;
 }
 
 /**
@@ -813,9 +813,9 @@ function dismissUpdate($version) {
     if (!$pdo) return;
 
     $stmt = $pdo->prepare("
-        INSERT INTO settings (`key`, value)
+        INSERT INTO settings (setting_key, setting_value)
         VALUES ('dismissed_update_version', ?)
-        ON DUPLICATE KEY UPDATE value = ?
+        ON DUPLICATE KEY UPDATE setting_value = ?
     ");
     $stmt->execute([$version, $version]);
 }
