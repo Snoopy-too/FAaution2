@@ -112,8 +112,18 @@ try {
                 $zip->extractTo($extractPath);
                 $zip->close();
                 
-                // Find root folder in zip
-                $subDirs = glob($extractPath . '*', GLOB_ONLYDIR);
+                // Find root folder in zip (GitHub releases are nested in a folder)
+                $extractPath = rtrim($extractPath, '/\\') . DIRECTORY_SEPARATOR;
+                $files = scandir($extractPath);
+                $subDirs = [];
+                foreach ($files as $f) {
+                    if ($f === '.' || $f === '..') continue;
+                    if (is_dir($extractPath . $f)) {
+                        $subDirs[] = $extractPath . $f;
+                    }
+                }
+                
+                // If there is exactly one subdirectory and it seems to be the repo root, use it.
                 $sourceDir = (count($subDirs) === 1) ? $subDirs[0] : $extractPath;
                 
                 // Copy files
