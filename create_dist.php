@@ -1,6 +1,6 @@
 <?php
 // create_dist.php
-$version = '2.0.1';
+$version = '2.0.2';
 $zipFile = __DIR__ . "/faAuction_v{$version}_dist.zip";
 
 if (file_exists($zipFile)) {
