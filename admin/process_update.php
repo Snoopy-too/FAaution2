@@ -133,77 +133,90 @@ try {
         case 'install':
             $tempDir = __DIR__ . '/../temp_update/';
             $zipFile = $tempDir . 'update.zip';
-            
+
             if (!file_exists($zipFile)) throw new Exception('Update file not found');
-            
+
             if (!class_exists('ZipArchive')) {
                 throw new Exception('PHP Zip extension is not enabled. Please enable it in php.ini.');
             }
             $zip = new ZipArchive();
-            if ($zip->open($zipFile) === TRUE) {
-                $extractPath = $tempDir . 'extracted/';
-                if (!is_dir($extractPath)) mkdir($extractPath, 0755, true);
-
-                $zip->extractTo($extractPath);
-                $zip->close();
-                
-                // Find root folder in zip
-                $subDirs = glob($extractPath . '*', GLOB_ONLYDIR);
-
-                // Pick the first subdirectory (GitHub always nests in a folder)
-                // If multiple exist from previous failed attempts, use the first one
-                if (count($subDirs) >= 1) {
-                    $sourceDir = $subDirs[0];
-                } else {
-                    $sourceDir = $extractPath;
-                }
-                
-                // Copy files
-                $destDir = realpath(__DIR__ . '/../');
-                
-                $iterator = new RecursiveIteratorIterator(
-                    new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS),
-                    RecursiveIteratorIterator::SELF_FIRST
-                );
-                
-                foreach ($iterator as $item) {
-                    $subPath = $iterator->getSubPathName();
-                    $destPath = $destDir . DIRECTORY_SEPARATOR . $subPath;
-                    
-                    // Critical Exclusions - preserve user config files
-                    if ($subPath === 'config/database.php' && file_exists($destPath)) continue;
-                    if ($subPath === 'config/installed.php' && file_exists($destPath)) continue;
-                    // Note: We DO want to overwrite version.txt
-                    
-                    if (strpos($subPath, 'install') === 0) continue;
-                    if (strpos($subPath, 'backups') === 0) continue;
-                    if (strpos($subPath, 'images/uploads') === 0) continue;
-                    if (strpos($subPath, 'assets/uploads') === 0) continue; // Also exclude assets/uploads if it exists
-                    if (strpos($subPath, 'team_logos') === 0) continue;
-                    if (strpos($subPath, 'person_pictures') === 0) continue;
-                    if (strpos($subPath, '.git') === 0) continue;
-                    
-                    if ($item->isDir()) {
-                        if (!is_dir($destPath)) {
-                             if (!@mkdir($destPath, 0755, true)) {
-                                 throw new Exception("Permission denied: Cannot create directory $subPath");
-                             }
-                        }
-                    } else {
-                        if (!@copy($item, $destPath)) {
-                             throw new Exception("Permission denied: Cannot overwrite file $subPath. Check server permissions.");
-                        }
-                    }
-                }
-                
-                // Cleanup temp directory
-                recursiveDelete($tempDir);
-
-                $response['success'] = true;
-                $response['message'] = 'Files installed successfully';
-            } else {
+            if ($zip->open($zipFile) !== TRUE) {
                 throw new Exception('Failed to open update zip');
             }
+
+            $extractPath = $tempDir . 'extracted/';
+            if (!is_dir($extractPath)) mkdir($extractPath, 0755, true);
+
+            $zip->extractTo($extractPath);
+            $zip->close();
+
+            // Find root folder in zip (GitHub nests everything in repo-name-commit/)
+            $subDirs = glob($extractPath . '*', GLOB_ONLYDIR);
+
+            if (empty($subDirs)) {
+                throw new Exception('No directories found in update zip. Extract path: ' . $extractPath);
+            }
+
+            $sourceDir = $subDirs[0];
+
+            // Verify source has files
+            if (!is_dir($sourceDir)) {
+                throw new Exception('Source directory not found: ' . $sourceDir);
+            }
+
+            // Copy files
+            $destDir = realpath(__DIR__ . '/../');
+            $filesCopied = 0;
+            $dirsCreated = 0;
+
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST
+            );
+
+            foreach ($iterator as $item) {
+                // Normalize path separators to forward slashes for consistent comparison
+                $subPath = str_replace('\\', '/', $iterator->getSubPathName());
+                $destPath = $destDir . '/' . $subPath;
+
+                // Critical Exclusions - preserve user config files
+                if ($subPath === 'config/database.php' && file_exists($destPath)) continue;
+                if ($subPath === 'config/installed.php' && file_exists($destPath)) continue;
+                // Note: We DO want to overwrite version.txt
+
+                if (strpos($subPath, 'install/') === 0 || $subPath === 'install') continue;
+                if (strpos($subPath, 'backups/') === 0 || $subPath === 'backups') continue;
+                if (strpos($subPath, 'images/uploads/') === 0) continue;
+                if (strpos($subPath, 'assets/uploads/') === 0) continue;
+                if (strpos($subPath, 'team_logos/') === 0 && $subPath !== 'team_logos/.gitkeep') continue;
+                if (strpos($subPath, 'person_pictures/') === 0 && $subPath !== 'person_pictures/.gitkeep') continue;
+                if (strpos($subPath, '.git') === 0) continue;
+
+                if ($item->isDir()) {
+                    if (!is_dir($destPath)) {
+                         if (!@mkdir($destPath, 0755, true)) {
+                             throw new Exception("Permission denied: Cannot create directory $subPath");
+                         }
+                         $dirsCreated++;
+                    }
+                } else {
+                    $copied = @copy($item->getPathname(), $destPath);
+                    if (!$copied) {
+                         throw new Exception("Permission denied: Cannot overwrite file $subPath. Check server permissions.");
+                    }
+                    $filesCopied++;
+                }
+            }
+
+            if ($filesCopied === 0) {
+                throw new Exception("No files were copied. Source: $sourceDir, Found dirs: " . count($subDirs));
+            }
+
+            // Cleanup temp directory
+            recursiveDelete($tempDir);
+
+            $response['success'] = true;
+            $response['message'] = "Files installed successfully ($filesCopied files, $dirsCreated directories)";
             break;
             
         case 'migrate':
