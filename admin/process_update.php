@@ -6,6 +6,26 @@ requireAdmin();
 
 header('Content-Type: application/json');
 
+/**
+ * Recursively delete a directory and its contents
+ */
+function recursiveDelete($dir) {
+    if (!is_dir($dir)) return;
+
+    $items = scandir($dir);
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+
+        $path = $dir . DIRECTORY_SEPARATOR . $item;
+        if (is_dir($path)) {
+            recursiveDelete($path);
+        } else {
+            @unlink($path);
+        }
+    }
+    @rmdir($dir);
+}
+
 $response = ['success' => false, 'message' => ''];
 
 try {
@@ -83,14 +103,29 @@ try {
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($ch, CURLOPT_USERAGENT, 'FA-Auction-Updater');
             curl_exec($ch);
-            
-            if (curl_errno($ch)) {
-                throw new Exception(curl_error($ch));
-            }
-            
+
+            $curlError = curl_errno($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
             curl_close($ch);
             fclose($fp);
-            
+
+            if ($curlError) {
+                @unlink($zipFile);
+                throw new Exception('Download failed: ' . curl_strerror($curlError));
+            }
+
+            if ($httpCode !== 200) {
+                @unlink($zipFile);
+                throw new Exception("Download failed: HTTP $httpCode. Check that the release exists on GitHub.");
+            }
+
+            // Verify file was actually downloaded
+            if (!file_exists($zipFile) || filesize($zipFile) < 1000) {
+                @unlink($zipFile);
+                throw new Exception('Download failed: File is empty or too small');
+            }
+
             $response['success'] = true;
             $response['message'] = 'Update downloaded successfully';
             break;
@@ -135,8 +170,9 @@ try {
                     $subPath = $iterator->getSubPathName();
                     $destPath = $destDir . DIRECTORY_SEPARATOR . $subPath;
                     
-                    // Critical Exclusions (replicate .updateignore logic simpler here)
+                    // Critical Exclusions - preserve user config files
                     if ($subPath === 'config/database.php' && file_exists($destPath)) continue;
+                    if ($subPath === 'config/installed.php' && file_exists($destPath)) continue;
                     // Note: We DO want to overwrite version.txt
                     
                     if (strpos($subPath, 'install') === 0) continue;

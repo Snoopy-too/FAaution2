@@ -1,11 +1,20 @@
-<?php
-// .updateignore
-// Files and directories to preserve during update
+# .updateignore
+# Files and directories preserved during auto-update
+# Note: This is a reference file - actual exclusions are in admin/process_update.php
+
+# User configuration (never overwritten if exists)
 config/database.php
-install/
-backups/
-images/uploads/
+config/installed.php
+
+# User content directories (never touched)
 team_logos/
 person_pictures/
-.htaccess
-version.txt
+images/uploads/
+assets/uploads/
+backups/
+
+# Installation files (skip during update)
+install/
+
+# System directories
+.git/
