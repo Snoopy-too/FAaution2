@@ -37,6 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = $result['message'];
                 }
             }
+        } elseif ($action === 'check_updates') {
+            // Force check for updates
+            clearUpdateCache();
+            $success = 'Update check refreshed.';
         } else {
             // Save all settings
             $settingsToSave = [
@@ -378,6 +382,55 @@ include __DIR__ . '/../includes/header.php';
             </div>
             <button type="submit" class="btn btn-secondary">Send Test Email</button>
         </form>
+    </div>
+</div>
+
+<!-- System Updates -->
+<?php $updateInfo = checkForUpdates(); ?>
+<div class="card mt-3">
+    <div class="card-header">
+        <h3>System Updates</h3>
+    </div>
+    <div class="card-body">
+        <div class="form-row" style="align-items: center;">
+            <div class="form-group" style="flex: 1;">
+                <label>Current Version</label>
+                <div style="font-size: 1.25em; font-weight: 600;">v<?php echo h(getCurrentVersion()); ?></div>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Latest Version</label>
+                <div style="font-size: 1.25em; font-weight: 600;">
+                    <?php if (isset($updateInfo['error'])): ?>
+                        <span class="text-muted">Unable to check</span>
+                    <?php elseif ($updateInfo && isset($updateInfo['latest_version'])): ?>
+                        v<?php echo h($updateInfo['latest_version']); ?>
+                        <?php if ($updateInfo['available']): ?>
+                            <span class="badge badge-success" style="margin-left: 8px;">New!</span>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="text-muted">v<?php echo h(getCurrentVersion()); ?></span>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <form method="POST" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                        <input type="hidden" name="action" value="check_updates">
+                        <button type="submit" class="btn btn-secondary">Check for Updates</button>
+                    </form>
+                    <?php if ($updateInfo && !empty($updateInfo['available'])): ?>
+                        <a href="update.php" class="btn btn-primary">Install Update</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php if (isset($updateInfo['error'])): ?>
+            <p class="text-muted mt-2" style="margin-bottom: 0;"><small><?php echo h($updateInfo['error']); ?></small></p>
+        <?php elseif ($updateInfo && isset($updateInfo['checked_at'])): ?>
+            <p class="text-muted mt-2" style="margin-bottom: 0;"><small>Last checked: <?php echo date('M j, Y g:i A', $updateInfo['checked_at']); ?></small></p>
+        <?php endif; ?>
     </div>
 </div>
 
