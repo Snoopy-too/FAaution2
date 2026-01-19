@@ -20,6 +20,15 @@ person_pictures/*
 
 # Distribution files
 *_dist.zip
+*.zip
+check_version/
+
+# Dev/test files
+create_dist.php
+test_*.php
+permission_test.php
+reset_updates.php
+*.csv
 
 # IDEs & OS
 .idea/
