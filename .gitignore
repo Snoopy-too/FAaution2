@@ -18,6 +18,9 @@ team_logos/*
 person_pictures/*
 !person_pictures/.gitkeep
 
+# Distribution files
+*_dist.zip
+
 # IDEs & OS
 .idea/
 .vscode/

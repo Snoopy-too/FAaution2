@@ -9,7 +9,12 @@
       "Bash(del faAuction_v2.0.0_install.zip)",
       "Bash(powershell:*)",
       "Bash(del \"C:\\\\xampp\\\\htdocs\\\\faAuction_2\\\\config\\\\installed.php\")",
-      "Bash(php -l:*)"
+      "Bash(php -l:*)",
+      "Bash(/c/xampp/php/php.exe:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(gh release create:*)"
     ]
   }
 }
