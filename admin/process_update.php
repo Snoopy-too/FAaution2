@@ -8,22 +8,6 @@ header('Content-Type: application/json');
 
 $response = ['success' => false, 'message' => ''];
 
-/**
- * Recursively delete a directory and its contents
- * @param string $dir Directory path to delete
- * @return bool Success status
- */
-function recursiveDelete($dir) {
-    if (!is_dir($dir)) return true;
-    
-    $files = array_diff(scandir($dir), ['.', '..']);
-    foreach ($files as $file) {
-        $path = $dir . DIRECTORY_SEPARATOR . $file;
-        is_dir($path) ? recursiveDelete($path) : @unlink($path);
-    }
-    return @rmdir($dir);
-}
-
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception('Invalid request method');
@@ -60,13 +44,11 @@ try {
                     $filePath = $file->getRealPath();
                     $relativePath = substr($filePath, strlen($rootPath) + 1);
                     
-                    // Basic exclusions (per UPDATE_SYSTEM_PRD.md Section 4.2)
+                    // Basic exclusions
                     if (strpos($relativePath, 'backups') === 0) continue;
                     if (strpos($relativePath, '.git') === 0) continue;
                     if (strpos($relativePath, 'node_modules') === 0) continue;
-                    if (strpos($relativePath, 'temp_update') === 0) continue;
                     if (strpos($relativePath, '.vscode') === 0) continue;
-                    if (strcasecmp(basename($relativePath), 'create_dist.php') === 0) continue;
                     
                     $zip->addFile($filePath, $relativePath);
                 }
@@ -130,19 +112,16 @@ try {
                 $zip->extractTo($extractPath);
                 $zip->close();
                 
-                // Find root folder in zip (GitHub releases are nested in a folder)
-                $extractPath = rtrim($extractPath, '/\\') . DIRECTORY_SEPARATOR;
-                $files = scandir($extractPath);
-                $subDirs = [];
-                foreach ($files as $f) {
-                    if ($f === '.' || $f === '..') continue;
-                    if (is_dir($extractPath . $f)) {
-                        $subDirs[] = $extractPath . $f;
-                    }
+                // Find root folder in zip
+                $subDirs = glob($extractPath . '*', GLOB_ONLYDIR);
+
+                // Pick the first subdirectory (GitHub always nests in a folder)
+                // If multiple exist from previous failed attempts, use the first one
+                if (count($subDirs) >= 1) {
+                    $sourceDir = $subDirs[0];
+                } else {
+                    $sourceDir = $extractPath;
                 }
-                
-                // If there is exactly one subdirectory and it seems to be the repo root, use it.
-                $sourceDir = (count($subDirs) === 1) ? $subDirs[0] : $extractPath;
                 
                 // Copy files
                 $destDir = realpath(__DIR__ . '/../');
@@ -183,7 +162,7 @@ try {
                 
                 // Cleanup temp directory
                 recursiveDelete($tempDir);
-                
+
                 $response['success'] = true;
                 $response['message'] = 'Files installed successfully';
             } else {
