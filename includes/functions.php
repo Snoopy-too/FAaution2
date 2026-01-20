@@ -807,31 +807,57 @@ function getCurrentVersion() {
  */
 function checkForUpdates() {
     $cacheFile = __DIR__ . '/../cache/update_check.json';
-    $cacheTime = 86400; // 24 hours
-    
+    $cacheTimeUpdateAvailable = 86400; // 24 hours - keep showing update notification
+    $cacheTimeNoUpdate = 14400; // 4 hours - check more frequently for new releases
+
     // Check cache first
-    if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTime) {
+    if (file_exists($cacheFile)) {
         $cached = json_decode(file_get_contents($cacheFile), true);
-        if ($cached) return $cached;
+        if ($cached) {
+            $cacheAge = time() - filemtime($cacheFile);
+            // Use different cache times based on whether an update was available
+            $maxCacheTime = !empty($cached['available']) ? $cacheTimeUpdateAvailable : $cacheTimeNoUpdate;
+            if ($cacheAge < $maxCacheTime) {
+                return $cached;
+            }
+        }
     }
-    
+
     $currentVersion = getCurrentVersion();
     $url = 'https://api.github.com/repos/Snoopy-too/FAaution2/releases/latest';
-    
-    // Helper to fetch URL
+
+    // Helper to fetch URL with detailed error reporting
     $fetchUrl = function($url) {
+        $errorDetails = [];
+
         // Try cURL first as it's more reliable
         if (function_exists('curl_init')) {
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
             curl_setopt($ch, CURLOPT_USERAGENT, 'FA-Auction-App');
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
             $output = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            $curlErrno = curl_errno($ch);
             curl_close($ch);
-            if ($httpCode == 200 && $output) return $output;
+
+            if ($curlErrno) {
+                $errorDetails[] = "cURL error $curlErrno: $curlError";
+            } elseif ($httpCode == 200 && $output) {
+                return ['success' => true, 'data' => $output];
+            } elseif ($httpCode == 403) {
+                $errorDetails[] = "GitHub API rate limit exceeded (HTTP 403). Try again later.";
+            } elseif ($httpCode == 404) {
+                $errorDetails[] = "GitHub repository or release not found (HTTP 404).";
+            } elseif ($httpCode != 200) {
+                $errorDetails[] = "GitHub API returned HTTP $httpCode";
+            }
+        } else {
+            $errorDetails[] = "cURL extension not installed";
         }
 
         // Fallback to file_get_contents
@@ -840,28 +866,37 @@ function checkForUpdates() {
                 'http' => [
                     'method' => 'GET',
                     'header' => "User-Agent: FA-Auction-App\r\n",
-                    'timeout' => 5
+                    'timeout' => 10
                 ]
             ]);
             $response = @file_get_contents($url, false, $context);
-            if ($response) return $response;
+            if ($response) {
+                return ['success' => true, 'data' => $response];
+            }
+            $errorDetails[] = "file_get_contents fallback also failed";
+        } else {
+            $errorDetails[] = "allow_url_fopen is disabled";
         }
 
-        return false;
+        return ['success' => false, 'errors' => $errorDetails];
     };
 
-    $response = $fetchUrl($url);
-    if (!$response) {
-        return ['error' => 'Could not connect to GitHub to check for updates. ' . (function_exists('curl_init') ? 'cURL failed.' : 'cURL not installed.')];
+    $result = $fetchUrl($url);
+    if (!$result['success']) {
+        $errorMsg = 'Could not connect to GitHub to check for updates.';
+        if (!empty($result['errors'])) {
+            $errorMsg .= ' Details: ' . implode('; ', $result['errors']);
+        }
+        return ['error' => $errorMsg];
     }
-    
-    $release = json_decode($response, true);
+
+    $release = json_decode($result['data'], true);
     if (!$release || !isset($release['tag_name'])) {
-        return ['error' => 'Invalid response from GitHub API.'];
+        return ['error' => 'Invalid response from GitHub API. The response may be malformed or the repository has no releases.'];
     }
-    
+
     $latestVersion = ltrim($release['tag_name'], 'v');
-    
+
     // Compare versions
     if (version_compare($latestVersion, $currentVersion, '>')) {
         $updateInfo = [
@@ -873,21 +908,20 @@ function checkForUpdates() {
             'release_date' => $release['published_at'] ?? '',
             'checked_at' => time()
         ];
-        
+
         // Cache the result
         @mkdir(dirname($cacheFile), 0755, true);
         @file_put_contents($cacheFile, json_encode($updateInfo));
-        
+
         return $updateInfo;
     }
-    
-    // No update available - cache this too
+
+    // No update available - cache for shorter time so new releases are detected faster
     $noUpdate = ['available' => false, 'checked_at' => time()];
-    // Ensure cache directory exists before writing
     @mkdir(dirname($cacheFile), 0755, true);
     @file_put_contents($cacheFile, json_encode($noUpdate));
-    
-    return $noUpdate; // Return the array instead of false so we know it checked successfully
+
+    return $noUpdate;
 }
 
 /**
