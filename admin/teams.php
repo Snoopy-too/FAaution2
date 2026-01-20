@@ -200,8 +200,7 @@ include __DIR__ . '/../includes/header.php';
                             </td>
                             <td>
                                 <a href="?edit=<?php echo $team['id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
-                                <form method="POST" style="display: inline;"
-                                      onsubmit="return confirm('Are you sure you want to delete this team?');">
+                                <form method="POST" style="display: inline;" data-confirm="Are you sure you want to delete this team?">
                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $team['id']; ?>">

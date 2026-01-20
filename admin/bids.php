@@ -262,8 +262,7 @@ include __DIR__ . '/../includes/header.php';
                             <td><?php echo formatDateTime($bid['created_at']); ?></td>
                             <td>
                                 <a href="?edit=<?php echo $bid['id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
-                                <form method="POST" style="display: inline;"
-                                      onsubmit="return confirm('Delete this bid?');">
+                                <form method="POST" style="display: inline;" data-confirm="Delete this bid?">
                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $bid['id']; ?>">

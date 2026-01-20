@@ -285,7 +285,7 @@ include __DIR__ . '/../includes/header.php';
                         <td>
                             <a href="?edit=<?php echo $member['id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
                             <?php if (!$member['is_admin']): ?>
-                                <form method="POST" style="display: inline;">
+                                <form method="POST" style="display: inline;" data-confirm="<?php echo $member['is_active'] ? 'Deactivate this member? This will also remove their team association.' : 'Activate this member?'; ?>">
                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                     <input type="hidden" name="action" value="toggle_active">
                                     <input type="hidden" name="id" value="<?php echo $member['id']; ?>">

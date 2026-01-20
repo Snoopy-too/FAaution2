@@ -157,12 +157,18 @@ function requireMember() {
  * @param string $password User's password
  * @param string $name User's name
  * @param int $teamId Selected team ID
+ * @param string $commishCode Commish Code for registration
  * @return array Result with success status and message
  */
-function registerMember($email, $password, $name, $teamId) {
+function registerMember($email, $password, $name, $teamId, $commishCode = '') {
     $pdo = getDBConnection();
     if (!$pdo) {
         return ['success' => false, 'message' => 'Database connection failed'];
+    }
+
+    // Validate Commish Code first
+    if (!validateCommishCode($commishCode)) {
+        return ['success' => false, 'message' => 'Invalid or expired Commish Code. Please contact your league commissioner for a valid code.'];
     }
 
     // Check if email already exists

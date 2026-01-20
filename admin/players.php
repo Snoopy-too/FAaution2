@@ -423,8 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <form method="POST" style="display: inline;"
-                                      onsubmit="return confirm('Delete this player and all their bids?');">
+                                <form method="POST" style="display: inline;" data-confirm="Delete this player and all their bids?">
                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                     <input type="hidden" name="action" value="delete_player">
                                     <input type="hidden" name="id" value="<?php echo $player['id']; ?>">
@@ -471,176 +470,94 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <!-- Archive Modal -->
-<div id="archiveModal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 600px;">
-        <div class="card">
-            <div class="card-header">
-                <h3>Archive Current Free Agent Class</h3>
+<div id="archiveModal" class="modal-backdrop">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>Archive Current Free Agent Class</h3>
+        </div>
+        <div class="modal-body">
+            <div style="background: var(--gray-50); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <strong>Current Statistics:</strong><br>
+                <?php echo number_format($totalPlayers); ?> players •
+                <?php
+                $bidStmt = $pdo->query("SELECT COUNT(*) as count FROM bids b JOIN players p ON b.player_id = p.id WHERE p.archive_id IS NULL");
+                $bidCount = $bidStmt->fetch()['count'];
+                echo number_format($bidCount);
+                ?> bids
             </div>
-            <div class="card-body">
-                <div style="background: var(--gray-50); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <strong>Current Statistics:</strong><br>
-                    <?php echo number_format($totalPlayers); ?> players •
-                    <?php
-                    $bidStmt = $pdo->query("SELECT COUNT(*) as count FROM bids b JOIN players p ON b.player_id = p.id WHERE p.archive_id IS NULL");
-                    $bidCount = $bidStmt->fetch()['count'];
-                    echo number_format($bidCount);
-                    ?> bids
+
+            <form id="archiveForm" method="POST">
+                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                <input type="hidden" name="action" value="create_archive">
+
+                <div class="form-group">
+                    <label for="archive_name">Archive Name *</label>
+                    <input type="text" id="archive_name" name="archive_name" class="form-control"
+                           placeholder="e.g., 2024 Season FA Class" required>
                 </div>
 
-                <form id="archiveForm" method="POST">
-                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-                    <input type="hidden" name="action" value="create_archive">
+                <div class="form-group">
+                    <label for="archive_description">Description (Optional)</label>
+                    <textarea id="archive_description" name="archive_description" class="form-control"
+                              rows="3" placeholder="Add notes about this free agent class..."></textarea>
+                </div>
 
-                    <div class="form-group">
-                        <label for="archive_name">Archive Name *</label>
-                        <input type="text" id="archive_name" name="archive_name" class="form-control"
-                               placeholder="e.g., 2024 Season FA Class" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="archive_description">Description (Optional)</label>
-                        <textarea id="archive_description" name="archive_description" class="form-control"
-                                  rows="3" placeholder="Add notes about this free agent class..."></textarea>
-                    </div>
-
-                    <div style="background: var(--warning-light, #fff3cd); padding: 12px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid var(--warning, #ffc107);">
-                        <strong>⚠️ Warning:</strong> This will move all current players and their bids to the archive.
-                        This action cannot be undone, but archived data will be preserved and viewable.
-                    </div>
-
-                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button type="button" class="btn btn-secondary" onclick="hideArchiveModal()">Cancel</button>
-                        <button type="button" class="btn btn-primary" onclick="confirmArchive()">Create Archive</button>
-                    </div>
-                </form>
-            </div>
+                <div style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; padding: 12px; border-radius: 6px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+                    <strong>⚠️ Warning:</strong> This will move all current players and their bids to the archive.
+                    This action cannot be undone, but archived data will be preserved and viewable.
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="hideArchiveModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="confirmArchive()">Create Archive</button>
         </div>
     </div>
 </div>
-
-<!-- Generic Confirmation Modal -->
-<div id="confirmModal" class="modal" style="display: none; z-index: 10001;">
-    <div class="modal-content" style="max-width: 400px;">
-        <div class="card">
-            <div class="card-header">
-                <h3 id="confirmTitle">Confirm Action</h3>
-            </div>
-            <div class="card-body">
-                <p id="confirmMessage" class="mb-4">Are you sure you want to proceed?</p>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="hideConfirmModal()">Cancel</button>
-                    <button type="button" id="confirmButton" class="btn btn-primary">Confirm</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    backdrop-filter: blur(2px);
-}
-.modal-content {
-    width: 100%;
-    animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes modalSlideIn {
-    from { transform: translateY(-30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-</style>
 
 <script>
-let confirmCallback = null;
-
-function showConfirmModal(title, message, buttonText, buttonClass, callback) {
-    document.getElementById('confirmTitle').innerText = title;
-    document.getElementById('confirmMessage').innerText = message;
-    const btn = document.getElementById('confirmButton');
-    btn.innerText = buttonText;
-    btn.className = 'btn ' + buttonClass;
-    confirmCallback = callback;
-    document.getElementById('confirmModal').style.display = 'flex';
-}
-
-function hideConfirmModal() {
-    document.getElementById('confirmModal').style.display = 'none';
-    confirmCallback = null;
-}
-
-document.getElementById('confirmButton').addEventListener('click', function() {
-    if (confirmCallback) {
-        confirmCallback();
-    }
-    hideConfirmModal();
-});
-
 function showArchiveModal() {
-    document.getElementById('archiveModal').style.display = 'flex';
+    const modal = document.getElementById('archiveModal');
+    modal.classList.add('active');
     document.getElementById('archive_name').focus();
 }
 
 function hideArchiveModal() {
-    document.getElementById('archiveModal').style.display = 'none';
+    document.getElementById('archiveModal').classList.remove('active');
 }
 
-function confirmArchive() {
+async function confirmArchive() {
     const name = document.getElementById('archive_name').value.trim();
     if (!name) {
         alert('Please enter an archive name.');
         return;
     }
     
-    showConfirmModal(
-        'Confirm Archive', 
+    const confirmed = await showConfirm(
         'Are you sure you want to archive all current players? This action cannot be undone.',
-        'Yes, Archive All',
-        'btn-primary',
-        function() {
-            document.getElementById('archiveForm').submit();
-        }
+        'Confirm Archive'
     );
+    
+    if (confirmed) {
+        document.getElementById('archiveForm').submit();
+    }
 }
 
-function confirmClearAll() {
-    showConfirmModal(
-        'Clear All Players', 
+async function confirmClearAll() {
+    const confirmed = await showConfirm(
         'This will delete ALL active players and their bids. Are you sure you want to proceed?',
-        'Yes, Delete Everything',
-        'btn-danger',
-        function() {
-            document.getElementById('clearAllForm').submit();
-        }
+        'Clear All Players'
     );
+    
+    if (confirmed) {
+        document.getElementById('clearAllForm').submit();
+    }
 }
 
-// Close modals on background click
-document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.style.display = 'none';
-        }
-    });
-});
-
-// Close modals on Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.style.display = 'none';
-        });
+// Close archive modal on background click
+document.getElementById('archiveModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideArchiveModal();
     }
 });
 </script>

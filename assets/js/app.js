@@ -82,13 +82,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // ========================================
     // Confirm dialogs for delete actions
     // ========================================
-    const deleteForms = document.querySelectorAll('form[data-confirm]');
-    deleteForms.forEach(function (form) {
-        form.addEventListener('submit', function (e) {
-            if (!confirm(form.dataset.confirm)) {
-                e.preventDefault();
-            }
-        });
+    const confirmForms = document.querySelectorAll('form[data-confirm], button[data-confirm]');
+    confirmForms.forEach(function (element) {
+        if (element.tagName === 'FORM') {
+            element.addEventListener('submit', async function (e) {
+                if (!element.dataset.confirmed) {
+                    e.preventDefault();
+                    const confirmed = await showConfirm(element.dataset.confirm);
+                    if (confirmed) {
+                        element.dataset.confirmed = 'true';
+                        element.submit();
+                    }
+                }
+            });
+        }
     });
 
     // ========================================
@@ -213,4 +220,62 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+// showConfirm: Styled replacement for window.confirm
+function showConfirm(message, title = 'Confirm Action') {
+    return new Promise((resolve) => {
+        // Create modal elements
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop';
+
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+
+        modal.innerHTML = `
+            <div class="modal-header">
+                <h3>${title}</h3>
+            </div>
+            <div class="modal-body">
+                <p>${message}</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="modal-confirm">Confirm</button>
+            </div>
+        `;
+
+        backdrop.appendChild(modal);
+        document.body.appendChild(backdrop);
+
+        // Show modal
+        setTimeout(() => backdrop.classList.add('active'), 10);
+
+        const cleanup = (result) => {
+            backdrop.classList.remove('active');
+            setTimeout(() => {
+                document.body.removeChild(backdrop);
+                resolve(result);
+            }, 300);
+        };
+
+        // Event listeners
+        document.getElementById('modal-cancel').onclick = () => cleanup(false);
+        document.getElementById('modal-confirm').onclick = () => cleanup(true);
+        backdrop.onclick = (e) => {
+            if (e.target === backdrop) cleanup(false);
+        };
+
+        // Handle enter/escape
+        const handleKeys = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                cleanup(true);
+                document.removeEventListener('keydown', handleKeys);
+            } else if (e.key === 'Escape') {
+                cleanup(false);
+                document.removeEventListener('keydown', handleKeys);
+            }
+        };
+        document.addEventListener('keydown', handleKeys);
+    });
 }

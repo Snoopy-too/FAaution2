@@ -41,6 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Force check for updates
             clearUpdateCache();
             $success = 'Update check refreshed.';
+        } elseif ($action === 'generate_commish_code') {
+            // Generate new Commish Code
+            $result = generateCommishCode(getCurrentUserId());
+            if ($result['success']) {
+                $generatedCode = $result['code'];
+                $success = 'New Commish Code generated successfully.';
+            } else {
+                $error = $result['message'];
+            }
         } else {
             // Save all settings
             $settingsToSave = [
@@ -365,6 +374,71 @@ include __DIR__ . '/../includes/header.php';
     <button type="submit" class="btn btn-primary btn-lg">Save Settings</button>
 </form>
 
+<!-- Commish Code (Registration Code) -->
+<?php $activeCode = getActiveCommishCode(); ?>
+<div class="card mt-3">
+    <div class="card-header">
+        <h3>Registration Code (Commish Code)</h3>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-2">Generate a registration code for new members. Each code is valid for 24 hours. Only one code can be active at a time.</p>
+        
+        <?php if ($activeCode): ?>
+            <div class="alert alert-info" style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <strong>Active Code:</strong>
+                    <span id="commish-code" style="font-family: monospace; font-size: 1.5em; font-weight: bold; letter-spacing: 3px; margin-left: 10px;"
+                          ><?php echo h($activeCode['code']); ?></span>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="copyCommishCode()" style="margin-left: 10px;" title="Copy to clipboard">
+                        📋 Copy
+                    </button>
+                </div>
+                <div style="text-align: right;">
+                    <small class="text-muted">
+                        Expires: <?php echo formatDateTime($activeCode['expires_at']); ?>
+                        <?php 
+                        $expiresAt = strtotime($activeCode['expires_at']);
+                        $hoursLeft = round(($expiresAt - time()) / 3600, 1);
+                        if ($hoursLeft > 0): ?>
+                            <br><span style="color: var(--success);">⏱ <?php echo $hoursLeft; ?> hours remaining</span>
+                        <?php endif; ?>
+                    </small>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-warning">
+                <strong>No active code.</strong> Generate a new code to allow members to register.
+            </div>
+        <?php endif; ?>
+        
+        <form method="POST" style="margin-top: 15px;" data-confirm="<?php echo $activeCode ? 'This will invalidate the current code. Continue?' : 'Generate a new registration code?'; ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+            <input type="hidden" name="action" value="generate_commish_code">
+            <button type="submit" class="btn btn-primary">
+                <?php echo $activeCode ? '🔄 Generate New Code' : '➕ Generate Code'; ?>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function copyCommishCode() {
+    const code = document.getElementById('commish-code').textContent.trim();
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Code copied to clipboard: ' + code);
+    }).catch(err => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Code copied to clipboard: ' + code);
+    });
+}
+</script>
+
 <!-- Test Email Form -->
 <div class="card mt-3">
     <div class="card-header">
@@ -441,5 +515,57 @@ function toggleDeadlineFields() {
     datetimeGroup.style.display = type === 'datetime' ? 'block' : 'none';
 }
 </script>
+
+<?php if (isset($generatedCode)): ?>
+<!-- New Code Modal -->
+<div id="newCodeModal" class="modal-backdrop active">
+    <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Commish Code Generated</h3>
+        </div>
+        <div class="modal-body text-center" style="padding: 30px;">
+            <p class="mb-3">Share this code with the new member so they can register:</p>
+            <div style="background: var(--gray-100); padding: 20px; border-radius: 12px; border: 2px dashed var(--primary); margin: 20px 0;">
+                <span id="modal-commish-code" style="font-family: monospace; font-size: 2.5em; font-weight: 800; letter-spacing: 5px; color: var(--primary);">
+                    <?php echo h($generatedCode); ?>
+                </span>
+            </div>
+            <p class="text-muted"><small>This code will expire in 24 hours.</small></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="copyModalCode()">
+                📋 Copy Code
+            </button>
+            <button type="button" class="btn btn-primary" onclick="closeCodeModal()">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyModalCode() {
+    const code = document.getElementById('modal-commish-code').textContent.trim();
+    navigator.clipboard.writeText(code).then(() => {
+        const btn = event.currentTarget;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✅ Copied!';
+        btn.classList.replace('btn-secondary', 'btn-success');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.replace('btn-success', 'btn-secondary');
+        }, 2000);
+    });
+}
+
+function closeCodeModal() {
+    const modal = document.getElementById('newCodeModal');
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 300);
+}
+
+// Persist - don't close on background click for this one as requested
+</script>
+<?php endif; ?>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

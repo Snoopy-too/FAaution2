@@ -38,9 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
         $confirmPassword = $_POST['password_confirm'] ?? '';
         $teamId = (int)($_POST['team_id'] ?? 0);
+        $commishCode = trim($_POST['commish_code'] ?? '');
 
         // Validate required fields
-        if (empty($name) || empty($email) || empty($password) || empty($teamId)) {
+        if (empty($name) || empty($email) || empty($password) || empty($teamId) || empty($commishCode)) {
             $error = 'All fields are required';
         }
         // Validate name length
@@ -66,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logRegistrationAttempt($_SERVER['REMOTE_ADDR']);
 
                 // Attempt registration
-                $result = registerMember($email, $password, $name, $teamId);
+                $result = registerMember($email, $password, $name, $teamId, $commishCode);
 
                 if ($result['success']) {
                     // Send verification email
@@ -116,6 +117,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php else: ?>
                     <form method="POST" id="registerForm">
                         <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+
+                        <div class="form-group">
+                            <label for="commish_code">Commish Code</label>
+                            <input type="text" id="commish_code" name="commish_code" class="form-control"
+                                   value="<?php echo h($_POST['commish_code'] ?? ''); ?>"
+                                   required maxlength="8" autocomplete="off" style="text-transform: uppercase; letter-spacing: 2px; font-family: monospace;">
+                            <small class="text-muted">Enter the 8-character code provided by your league commissioner</small>
+                        </div>
 
                         <div class="form-group">
                             <label for="name">Your Name</label>

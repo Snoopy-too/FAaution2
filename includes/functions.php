@@ -532,6 +532,93 @@ function isEmailAvailable($email) {
 }
 
 /**
+ * Commish Code Functions
+ */
+
+/**
+ * Generate a new Commish Code for member registration
+ * Deactivates any existing active codes and creates a new one
+ *
+ * @param int|null $createdBy Admin ID who generated the code
+ * @return array Code details with 'code' and 'expires_at'
+ */
+function generateCommishCode($createdBy = null) {
+    $pdo = getDBConnection();
+    if (!$pdo) {
+        return ['success' => false, 'message' => 'Database connection failed'];
+    }
+
+    try {
+        // Deactivate all existing active codes
+        $pdo->exec("UPDATE commish_codes SET is_active = 0 WHERE is_active = 1");
+
+        // Generate an 8-character alphanumeric code
+        $characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding similar chars (0,O,1,I)
+        $code = '';
+        for ($i = 0; $i < 8; $i++) {
+            $code .= $characters[random_int(0, strlen($characters) - 1)];
+        }
+
+        // Set expiration to 24 hours from now
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+24 hours'));
+
+        $stmt = $pdo->prepare("
+            INSERT INTO commish_codes (code, expires_at, created_by, is_active)
+            VALUES (?, ?, ?, 1)
+        ");
+        $stmt->execute([$code, $expiresAt, $createdBy]);
+
+        return [
+            'success' => true,
+            'code' => $code,
+            'expires_at' => $expiresAt
+        ];
+    } catch (PDOException $e) {
+        return ['success' => false, 'message' => 'Failed to generate code: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * Get the current active Commish Code
+ *
+ * @return array|null Code details or null if none active/valid
+ */
+function getActiveCommishCode() {
+    $pdo = getDBConnection();
+    if (!$pdo) return null;
+
+    $stmt = $pdo->prepare("
+        SELECT code, created_at, expires_at, created_by
+        FROM commish_codes
+        WHERE is_active = 1 AND expires_at > NOW()
+        ORDER BY created_at DESC
+        LIMIT 1
+    ");
+    $stmt->execute();
+    return $stmt->fetch() ?: null;
+}
+
+/**
+ * Validate a Commish Code for registration
+ *
+ * @param string $code Code to validate
+ * @return bool True if code is valid
+ */
+function validateCommishCode($code) {
+    if (empty($code)) return false;
+
+    $pdo = getDBConnection();
+    if (!$pdo) return false;
+
+    $stmt = $pdo->prepare("
+        SELECT id FROM commish_codes
+        WHERE code = ? AND is_active = 1 AND expires_at > NOW()
+    ");
+    $stmt->execute([strtoupper(trim($code))]);
+    return (bool)$stmt->fetch();
+}
+
+/**
  * Archive Functions
  */
 
