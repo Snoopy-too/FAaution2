@@ -946,9 +946,9 @@ function isUpdateDismissed($version) {
     
     $stmt = $pdo->prepare("
         SELECT setting_value FROM settings 
-        WHERE setting_key = 'dismissed_update_version'
+        WHERE setting_key = ?
     ");
-    $stmt->execute();
+    $stmt->execute(['dismissed_update_version']);
     $result = $stmt->fetch();
     
     return $result && $result['setting_value'] === $version;

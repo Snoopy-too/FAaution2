@@ -314,7 +314,7 @@ try {
                 throw new Exception('MigrationRunner.php not found. The update files may not have been installed correctly. Try restarting the update.');
             }
 
-            require_once $migrationRunnerPath;
+            require_once __DIR__ . '/../includes/MigrationRunner.php';
 
             $pdo = getDBConnection();
             if (!$pdo) {

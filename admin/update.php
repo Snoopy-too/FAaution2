@@ -10,6 +10,9 @@ requireAdmin();
 define('PAGE_TITLE', 'Update FA Auction');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'force_check') {
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        die('Invalid security token.');
+    }
     clearUpdateCache();
     header('Location: update.php');
     exit;
@@ -40,6 +43,7 @@ include __DIR__ . '/../includes/header.php';
             </div>
             <div class="text-center">
                  <form method="POST" action="update.php">
+                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                      <input type="hidden" name="action" value="force_check">
                      <button type="submit" class="btn btn-primary">Try Again</button>
                  </form>
@@ -50,6 +54,7 @@ include __DIR__ . '/../includes/header.php';
                 <h3>You are up to date!</h3>
                 <p class="text-muted">Current Version: v<?php echo getCurrentVersion(); ?></p>
                 <form method="POST" action="update.php" style="margin-top: 20px;">
+                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                      <input type="hidden" name="action" value="force_check">
                      <button type="submit" class="btn btn-secondary">Check Again</button>
                 </form>

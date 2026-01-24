@@ -13,12 +13,23 @@ if (file_exists(__DIR__ . '/../config/installed.php')) {
     exit;
 }
 
+// Generate CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
+
 $step = isset($_GET['step']) ? (int)$_GET['step'] : 1;
 $error = '';
 $success = '';
 
 // Process form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Verify CSRF token
+    if (!hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'] ?? '')) {
+        die('Invalid security token. Please refresh the page and try again.');
+    }
+
     switch ($step) {
         case 1: // Database test
             $host = $_POST['db_host'] ?? 'localhost';
@@ -349,6 +360,7 @@ function getDBConnection() {
             <?php if ($step === 1): ?>
                 <h3 class="step-title">Step 1: Database Connection</h3>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <div class="form-group">
                         <label>Database Host</label>
                         <input type="text" name="db_host" value="localhost" required>
@@ -374,12 +386,14 @@ function getDBConnection() {
                     Click the button below to create the required database tables.
                 </p>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <button type="submit" class="btn btn-primary">Create Tables</button>
                 </form>
 
             <?php elseif ($step === 3): ?>
                 <h3 class="step-title">Step 3: Admin Account</h3>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <div class="form-group">
                         <label>Admin Name</label>
                         <input type="text" name="admin_name" required>
@@ -402,6 +416,7 @@ function getDBConnection() {
             <?php elseif ($step === 4): ?>
                 <h3 class="step-title">Step 4: Final Settings</h3>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                     <div class="form-group">
                         <label>League Name</label>
                         <input type="text" name="league_name" placeholder="e.g., National Baseball League">
